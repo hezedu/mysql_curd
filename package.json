@@ -1,5 +1,5 @@
 {
-  "name": "mysql_curd",
+  "name": "mysql_pool_curd",
   "version": "0.0.1",
   "main": "index",
   "keywords": [
@@ -11,7 +11,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/hezedu/mysql_curd.git"
+    "url": "https://github.com/hezedu/mysql_pool_curd.git"
   },
   "author": {
     "name": "hezedu"
@@ -25,6 +25,6 @@
   "email": "hezedu@hotmail.com",
   "description": "CURD for mysql",
   "bugs": {
-    "url": "https://github.com/hezedu/mysql_curd/issues"
+    "url": "https://github.com/hezedu/mysql_pool_curd/issues"
   }
 }

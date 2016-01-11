@@ -2,14 +2,14 @@ var mysql = require('mysql');
 var sas = require('sas');
 var js2sql = require('js2sql');
 
-function Db(conf) {
- this.pool = mysql.createPool(conf.mysql);
+function Db(pool) {
+ this.pool = pool;
 }
 //this.pool.connect();
 // 无条件查询 
 //@param {String} Connection 表名
 //@param {Object} keyObj 键数据
-
+//例：db.get('user', '*', function(){})
 Db.prototype.get = function(Connection, keyObj, callback){
   var sql = js2sql.obj_to_select_sql(Connection, keyObj);
   this.pool.query(sql, callback);
@@ -19,6 +19,7 @@ Db.prototype.get = function(Connection, keyObj, callback){
 //@param {String} Connection 表名
 //@param {Object} data 数据
 //@param {primary_key} 数据库主键
+//例：db.get('user', '*', function(){})
 Db.prototype.update = function(Connection, data, primary_key, callback){
     var sql = js2sql.obj_to_update_sql(Connection, data, primary_key);
     //console.log('update sql', sql);
@@ -61,9 +62,10 @@ Db.prototype.getByPrimary = function(Connection, keyObj, primary_key, callback){
 //@param {Object} 数据
 //@param {primary_key} 数据库主键
 Db.prototype.InsertOrUpdate = function(Connection, data, primary_key, callback) {
+  var self = this;
   function insert_task(cb) {
     var sql = js2sql.obj_to_insert_sql(Connection, data);
-    this.pool.query(sql, function(err, resp) {
+    self.pool.query(sql, function(err, resp) {
       if (err) {
         if (err.errno === 1062) { //主键重复
           cb('$RELOAD', update_task);
@@ -78,7 +80,7 @@ Db.prototype.InsertOrUpdate = function(Connection, data, primary_key, callback) 
 
   function update_task(cb) {
     var sql = js2sql.obj_to_update_sql(Connection, data, primary_key);
-    this.pool.query(sql, function(err, resp) {
+    self.pool.query(sql, function(err, resp) {
       if (err) {
         cb('$STOP', err);
       } else {
@@ -95,11 +97,11 @@ Db.prototype.InsertOrUpdate = function(Connection, data, primary_key, callback) 
 //@param {Object} 数据
 //@param {primary_key} 数据库主键
 Db.prototype.updateOrInsert = function(Connection, data, primary_key, callback) {
-
+  var self = this;
   function update_task(cb) {
     var sql = js2sql.obj_to_update_sql(Connection, data, primary_key);
     //console.log('update SQL ', sql);
-    this.pool.query(sql, function(err, resp) {
+    self.pool.query(sql, function(err, resp) {
       if (err) {
         cb('$STOP', err);
       } else {
@@ -114,7 +116,7 @@ Db.prototype.updateOrInsert = function(Connection, data, primary_key, callback) 
 
   function insert_task(cb) {
     var sql = js2sql.obj_to_insert_sql(Connection, data);
-    this.pool.query(sql, function(err, resp) {
+    self.pool.query(sql, function(err, resp) {
       if (err) {
         cb('$STOP', err);
       } else {
@@ -128,11 +130,11 @@ Db.prototype.updateOrInsert = function(Connection, data, primary_key, callback) 
 }
 
 Db.prototype.delInsert = function(Connection, data, primary_key, callback){
-
+  var self = this;
   function del_task(cb) {
     var sql = 'DELETE FROM ' + Connection + ' WHERE ' + primary_key  + '= "' + data[primary_key] + '"';
     //console.log('DELETE SQL ', sql);
-    this.pool.query(sql, function(err, resp) {
+    self.pool.query(sql, function(err, resp) {
       if (err) {
         cb('$STOP', err);
       } else {
@@ -147,7 +149,7 @@ Db.prototype.delInsert = function(Connection, data, primary_key, callback){
 
   function insert_task(cb) {
     var sql = js2sql.obj_to_insert_sql(Connection, data);
-    this.pool.query(sql, function(err, resp) {
+    self.pool.query(sql, function(err, resp) {
       if (err) {
         cb('$STOP', err);
       } else {
@@ -167,10 +169,10 @@ Db.prototype.delInsert = function(Connection, data, primary_key, callback){
 
 
 Db.prototype.getOrCreate = function(Connection, def_Data, primary_key, callback) {
-
+  var self = this;
   function get_task(cb) {
     var sql = js2sql.obj_to_select_sql(Connection, def_Data, primary_key);
-    this.pool.query(sql, function(err, rows, fields) {
+    self.pool.query(sql, function(err, rows, fields) {
       if (err) {
         cb('$STOP', err);
       } else {
@@ -190,7 +192,7 @@ Db.prototype.getOrCreate = function(Connection, def_Data, primary_key, callback)
       result[primary_key] = def_Data;
     }
     var sql = js2sql.obj_to_insert_sql(Connection, result);
-    this.pool.query(sql, function(err, resp) {
+    self.pool.query(sql, function(err, resp) {
       if (err) {
         cb('$STOP', err);
       } else {
@@ -202,10 +204,10 @@ Db.prototype.getOrCreate = function(Connection, def_Data, primary_key, callback)
 }
 
 Db.prototype.getOrInsertGet = function(Connection, def_Data, primary_key, callback) {
-
+  var self = this;
   function get_task(cb) {
     var sql = js2sql.obj_to_select_sql(Connection, def_Data, primary_key);
-    this.pool.query(sql, function(err, rows, fields) {
+    self.pool.query(sql, function(err, rows, fields) {
       if (err) {
         cb('$STOP', err);
       } else {
@@ -225,7 +227,7 @@ Db.prototype.getOrInsertGet = function(Connection, def_Data, primary_key, callba
       result[primary_key] = def_Data;
     }
     var sql = js2sql.obj_to_insert_sql(Connection, result);
-    this.pool.query(sql, function(err, resp) {
+    self.pool.query(sql, function(err, resp) {
       if (err) {
         cb('$STOP', err);
       } else {
@@ -245,7 +247,7 @@ Db.prototype.insertInto = function(Connection, list, callback){
 };
 
 
-Db.prototype.errHandle = function(callback , key) {
+/*Db.prototype.errHandle = function(callback , key) {
   return function(err, data) {
     if (err) {
       err.name = 'dbErr ' + err.name;
@@ -254,9 +256,11 @@ Db.prototype.errHandle = function(callback , key) {
     callback(null, data);
   }
 }
+*/
 
 
 
 
-
-module.exports = db;
+module.exports = function(conf){
+  return new Db(mysql.createPool(conf));
+};
