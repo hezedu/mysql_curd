@@ -196,7 +196,7 @@ Db.prototype.getOrCreate = function(Connection, def_Data, primary_key, callback)
       if (err) {
         cb('$STOP', err);
       } else {
-        cb(result);
+        cb(resp);
       }
     });
   }
